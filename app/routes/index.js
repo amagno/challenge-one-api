@@ -1,13 +1,18 @@
 const api = require('../api');
 const jwtMiddleware = require('express-jwt');
 const jwtSecret = require('../../config/secret');
+const defaultApp = require('express');
 
 const withUrlPrefix = url => `/api${url}`;
 
 
-module.exports = (app) => {
+module.exports = (app = defaultApp) => {
   app.use(withUrlPrefix('/'), jwtMiddleware({ secret: jwtSecret }).unless({
-    path: [withUrlPrefix('/login')],
+    path: [
+      withUrlPrefix('/home'),
+      withUrlPrefix('/login'),
+      withUrlPrefix('/register'),
+    ],
   }));
   app.use(withUrlPrefix('/'), (err, req, res, next) => {
     if (err.name === 'UnauthorizedError') {
@@ -16,15 +21,18 @@ module.exports = (app) => {
     return next();
   });
 
-  app.route(withUrlPrefix('/'))
+  app.route(withUrlPrefix('/home'))
     .get(api.home);
 
   // usuários
-  app.route(withUrlPrefix('/login'))
-    .post(api.users.login);
+  app.post(withUrlPrefix('/login'), api.users.login);
+  // .post(api.users.login);
+
+  app.post(withUrlPrefix('/register'), api.users.register);
+  // .post(api.users.register);
 
   app.route(withUrlPrefix('/users'))
-    .post(api.users.insert)
+    // .post(api.users.insert)
     .get(api.users.list);
 
   app.route(withUrlPrefix('/users/:identifier'))
@@ -44,6 +52,6 @@ module.exports = (app) => {
 
   // not found
   app.all('*', (req, res) => {
-    res.redirect(withUrlPrefix('/'));
+    res.redirect(withUrlPrefix('/home'));
   });
 };

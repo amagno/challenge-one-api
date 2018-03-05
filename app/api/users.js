@@ -15,12 +15,20 @@ users.login = (req, res) => {
     ]);
 
     db.users.findOne(login).exec((err, doc) => {
-      if (err) { res.status(500).json({ success: false, message: err }); }
-
+      if (err) {
+        res.status(500).json({ success: false, message: err });
+      }
+      // console.log('LOG IN DOC ===> ', doc);
+      if (!doc || doc === null) {
+        return res.status(400).json({ success: false, message: 'Password or email not match!' });
+      }
       const token = jwt.sign(doc, jwtSecret);
-
       return res.json({
         token,
+        user: Object.assign({}, {
+          ...doc,
+          password: undefined,
+        }),
         at: new Date().toJSON(),
       });
     });
@@ -48,11 +56,15 @@ users.list = (req, res) => {
       if (err) {
         res.status(500).json({ success: false, message: err });
       }
-      res.json(doc);
+      res.json(doc.map(d => ({
+        ...d,
+        password: undefined,
+        confirmPassword: undefined,
+      })));
     });
 };
 
-users.insert = async (req, res) => {
+users.register = async (req, res) => {
   try {
     const user = utils.validateAndCreateObject(req.body, [
       'name',
@@ -69,6 +81,7 @@ users.insert = async (req, res) => {
       if (err) {
         res.status(500).json({ success: false, message: err });
       }
+      delete newDoc.password;
       res.json(newDoc);
     });
   } catch (error) {

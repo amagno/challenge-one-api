@@ -43,10 +43,14 @@ const verifyExistsArray = async (db, propertyName, arrayValues) => {
   const verifyArray = await Promise.all(arrayValues.map(value => new Promise(async (resolve) => {
     const query = {};
     query[propertyName] = value;
+
+    console.log(query);
     const exist = await verifyExists(db, query);
+
+    console.log('EXISTS ===>', exist);
     resolve(exist);
   })));
-  return verifyArray.includes(false);
+  return verifyArray.includes(true);
 };
 
 module.exports = {

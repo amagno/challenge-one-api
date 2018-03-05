@@ -23,8 +23,8 @@ projects.list = (req, res) => {
 
   db.projects.find(search).skip(skip * limit).limit(limit).sort(sort)
     .exec((err, doc) => {
-      if (err) { res.status(500).json({ success: false, message: err }); }
-      res.json(doc);
+      if (err) { return res.status(500).json({ success: false, message: err }); }
+      return res.json(doc);
     });
 };
 
@@ -35,63 +35,39 @@ projects.insert = async (req, res) => {
       'start',
       'finish',
     ]);
-
-    // const bossId = req.user._id;
-    // const bossAlreadyProject = await utils.verifyExists(db.projects, { boss: bossId });
-
-    // if (bossAlreadyProject) {
-    //   return res.status(400).json({ success: false, message: 'Boss already belongs to project' });
-    // }
-    // const bossExists = await utils.verifyExists(db.users, { _id: project.boss });
-    const existTeam = await utils.verifyExistsArray(db.users, '_id', project.team);
-
-    if (existTeam) {
+    // return res.status(400).json({ success: false, message: 'Team must be array' });
+    const validatedTeam = [];
+    project.team.forEach((menber) => {
+      validatedTeam.push(utils.validateAndCreateObject(menber, [
+        '_id',
+        'name',
+        'email',
+        'workload',
+        'workloadProject',
+      ]));
+    });
+    project.team = validatedTeam;
+    const existTeam = await utils.verifyExistsArray(db.users, '_id', project.team.map(t => t._id));
+    if (!existTeam) {
       return res.status(400).json({ success: false, message: 'Team are menbers invalid!' });
     }
-
-    const start = moment(project.start, DATE_FORMAT);
-    const finish = moment(project.finish, DATE_FORMAT);
-
+    const start = moment(project.start);
+    const finish = moment(project.finish);
     if (!start.isValid() || !finish.isValid()) {
       return res.status(400).json({ success: false, message: 'Dates are invalid!' });
     }
-    console.log(start.format(DATE_FORMAT));
-    // console.log(project.finish);
-    console.log(finish.format(DATE_FORMAT));
-
-    project.team.forEach((userId) => {
-      db.projects.find({ team: [userId] }).exec((err, doc) => {
-        doc.forEach((p) => {
-          const startDateCheck = start.isBetween(moment(p.start, DATE_FORMAT), moment(p.finish, DATE_FORMAT))
-          || moment(p.start, DATE_FORMAT).isSame(start);
-          const finishDateCheck = finish.isBetween(moment(p.start, DATE_FORMAT), moment(p.finish, DATE_FORMAT))
-          || moment(p.finish, DATE_FORMAT).isSame(finish);
-
-          console.log(startDateCheck);
-          console.log(finishDateCheck);
-        });
-      });
+    project.start = start.format(DATE_FORMAT);
+    project.finish = finish.format(DATE_FORMAT);
+    project.boss = Object.assign({}, {
+      ...req.user,
+      password: undefined,
+      iat: undefined,
     });
-
-    // team.forEach(async (userId) => {
-    //   // console.log(userId);
-    //   const exists = await utils.verifyExists(db.users, { _id: userId });
-    //   if (!exists) {
-    //     return res.status(400).json({ success: false, message: `User ${userId} not exists` });
-    //   }
-    //   return userId;
-    // });
-
-    // console.log(project);
-
-    // delete project._id;
-    // db.projects.insert(project, (err, newDoc) => {
-    //   if (err) { res.status(500).json({ success: false, message: err }); }
-
-    //   // console.log(`${newDoc._id} success written`);
-    //   res.json(newDoc);
-    // });
-    res.json(project);
+    db.projects.insert(project, (err, newDoc) => {
+      if (err) { res.status(500).json({ success: false, message: err }); }
+      // console.log(`${newDoc._id} success written`);
+      return res.json(newDoc);
+    });
   } catch (error) {
     return res.status(400).json({ success: false, message: error.message });
   }
