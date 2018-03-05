@@ -54,9 +54,9 @@ users.list = (req, res) => {
   db.users.find(search).skip(skip * limit).limit(limit).sort(sort)
     .exec((err, doc) => {
       if (err) {
-        res.status(500).json({ success: false, message: err });
+        return res.status(500).json({ success: false, message: err });
       }
-      res.json(doc.map(d => ({
+      return res.json(doc.map(d => ({
         ...d,
         password: undefined,
         confirmPassword: undefined,

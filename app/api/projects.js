@@ -64,7 +64,7 @@ projects.insert = async (req, res) => {
       iat: undefined,
     });
     db.projects.insert(project, (err, newDoc) => {
-      if (err) { res.status(500).json({ success: false, message: err }); }
+      if (err) { return res.status(500).json({ success: false, message: err }); }
       // console.log(`${newDoc._id} success written`);
       return res.json(newDoc);
     });
@@ -81,7 +81,7 @@ projects.update = (req, res) => {
 
     if (numReplaced) { res.status(200).json({ success: true, message: `${req.params.identifier} success updated` }); }
 
-    res.status(500).end({ success: false, message: `can not find project ${req.params.identifier}` });
+    return res.status(500).end({ success: false, message: `can not find project ${req.params.identifier}` });
   });
 };
 
